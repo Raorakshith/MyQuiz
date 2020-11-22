@@ -7,13 +7,14 @@ import android.widget.TextView;
 
 public class ScoreDisplay extends AppCompatActivity {
 private TextView ctext;
-String text;
+String text,text1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_score_display);
         ctext=findViewById(R.id.congtext);
         text=getIntent().getStringExtra("totalscore");
-        ctext.setText("Congratulations! You've scored "+text+"/10");
+        text1=getIntent().getStringExtra("maximumscore");
+        ctext.setText("Congratulations! You've scored "+text+"/"+text1);
     }
 }

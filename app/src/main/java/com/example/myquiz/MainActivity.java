@@ -7,8 +7,11 @@ import androidx.cardview.widget.CardView;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -24,14 +27,16 @@ import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.Random;
+import java.util.Set;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class MainActivity extends AppCompatActivity {
 private TextView timerview,questionview,option1,option2,option3,option4,stat,questionno;
 private CountDownTimer countDownTimer;
-private DatabaseReference mRef,pRef;
+private DatabaseReference mRef,pRef,cRef;
 private String qno,answer;
 private CardView cardop1,cardop2,cardop3,cardop4;
 private LinearLayout anstats;
@@ -42,21 +47,37 @@ private ImageView tickorcan;
     FirebaseAuth mAuth;
     private int count=0;
     private int questioncount=1;
+    private int totcount;
+    private Random r;
+    private Vibrator vibrator;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        cRef=FirebaseDatabase.getInstance().getReference("Quiz1").child("Questions");
         mediaPlayer= new MediaPlayer();
+        r= new Random();
+        countDownTimer=new CountDownTimerClass(40000,1000);
         mProgress=new ProgressDialog(this);
         init();
-        countDownTimer=new CountDownTimerClass(20000,1000);
-        Random r= new Random();
-        int i1=r.nextInt(10-1)+1;
-        qno=String.valueOf(i1);
-        Toast.makeText(this, ""+qno, Toast.LENGTH_SHORT).show();
         mProgress.setMessage("Loading question...");
         mProgress.show();
-        startquiz();
+        cRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                 totcount= (int) snapshot.getChildrenCount();
+                int i1=r.nextInt(totcount);
+                qno=String.valueOf(i1);
+                Toast.makeText(MainActivity.this, ""+qno, Toast.LENGTH_SHORT).show();
+                startquiz();
+                Toast.makeText(MainActivity.this, "Child count is:"+totcount, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
         pRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -94,6 +115,11 @@ private ImageView tickorcan;
                     delayexecution();
                 }else {
                     anstats.setVisibility(View.VISIBLE);
+                    if(Build.VERSION.SDK_INT >= 26){
+                        vibrator.vibrate(VibrationEffect.createOneShot(200,VibrationEffect.DEFAULT_AMPLITUDE));
+                    }else {
+                        vibrator.vibrate(200);
+                    }
                     stat.setText("Wrong answer");
                     stat.setTextColor(getResources().getColor(R.color.red));
                     tickorcan.setImageResource(R.drawable.ic_baseline_cancel_24);
@@ -121,6 +147,11 @@ private ImageView tickorcan;
                     delayexecution();
                 }else {
                     anstats.setVisibility(View.VISIBLE);
+                    if(Build.VERSION.SDK_INT >= 26){
+                        vibrator.vibrate(VibrationEffect.createOneShot(200,VibrationEffect.DEFAULT_AMPLITUDE));
+                    }else {
+                        vibrator.vibrate(200);
+                    }
                     stat.setText("Wrong answer");
                     stat.setTextColor(getResources().getColor(R.color.red));
                     tickorcan.setImageResource(R.drawable.ic_baseline_cancel_24);
@@ -148,6 +179,11 @@ private ImageView tickorcan;
                     delayexecution();
                 }else {
                     anstats.setVisibility(View.VISIBLE);
+                    if(Build.VERSION.SDK_INT >= 26){
+                        vibrator.vibrate(VibrationEffect.createOneShot(200,VibrationEffect.DEFAULT_AMPLITUDE));
+                    }else {
+                        vibrator.vibrate(200);
+                    }
                     stat.setText("Wrong answer");
                     stat.setTextColor(getResources().getColor(R.color.red));
                     tickorcan.setImageResource(R.drawable.ic_baseline_cancel_24);
@@ -175,6 +211,11 @@ private ImageView tickorcan;
                     delayexecution();
                 }else {
                     anstats.setVisibility(View.VISIBLE);
+                    if(Build.VERSION.SDK_INT >= 26){
+                        vibrator.vibrate(VibrationEffect.createOneShot(200,VibrationEffect.DEFAULT_AMPLITUDE));
+                    }else {
+                        vibrator.vibrate(200);
+                    }
                     stat.setText("Wrong answer");
                     stat.setTextColor(getResources().getColor(R.color.red));
                     tickorcan.setImageResource(R.drawable.ic_baseline_cancel_24);
@@ -230,6 +271,7 @@ public class CountDownTimerClass extends CountDownTimer {
         imgprof=findViewById(R.id.circleimg);
         mAuth=FirebaseAuth.getInstance();
         pRef=FirebaseDatabase.getInstance().getReference("userdata").child(mAuth.getCurrentUser().getUid()).child("Profile");
+        vibrator= (Vibrator) getSystemService(VIBRATOR_SERVICE);
     }
 private void startquiz(){
     questionno.setText("Q"+String.valueOf(questioncount)+".");
@@ -293,37 +335,39 @@ private void delayexecution(){
         questioncount=questioncount+1;
         countDownTimer.cancel();
         mediaPlayer.stop();
-        if(questioncount>10){
+        if(questioncount>totcount){
             Intent intent= new Intent(MainActivity.this,ScoreDisplay.class);
             intent.putExtra("totalscore",String.valueOf(count));
+            intent.putExtra("maximumscore",String.valueOf(totcount));
             startActivity(intent);
-        }
-        new CountDownTimer(5000,1000){
-            @Override
-            public void onFinish() {
-                //mProgress.dismiss();
-                anstats.setVisibility(View.GONE);
-                cardop4.setCardBackgroundColor(getResources().getColor(R.color.white));
-                cardop3.setCardBackgroundColor(getResources().getColor(R.color.white));
-                cardop2.setCardBackgroundColor(getResources().getColor(R.color.white));
-                cardop1.setCardBackgroundColor(getResources().getColor(R.color.white));
-                Random r= new Random();
-                int i1=r.nextInt(10-1)+1;
-                qno=String.valueOf(i1);
-                Toast.makeText(MainActivity.this, ""+qno, Toast.LENGTH_SHORT).show();
-                startquiz();
-                cardop2.setEnabled(true);
-                cardop3.setEnabled(true);
-                cardop1.setEnabled(true);
-                cardop4.setEnabled(true);
-            }
+        }else{
+            new CountDownTimer(5000,1000){
+                @Override
+                public void onFinish() {
+                    //mProgress.dismiss();
+                    anstats.setVisibility(View.GONE);
+                    cardop4.setCardBackgroundColor(getResources().getColor(R.color.white));
+                    cardop3.setCardBackgroundColor(getResources().getColor(R.color.white));
+                    cardop2.setCardBackgroundColor(getResources().getColor(R.color.white));
+                    cardop1.setCardBackgroundColor(getResources().getColor(R.color.white));
+                    int i1=r.nextInt(totcount);
+                    qno=String.valueOf(i1);
+                    Toast.makeText(MainActivity.this, ""+qno, Toast.LENGTH_SHORT).show();
+                    startquiz();
+                    cardop2.setEnabled(true);
+                    cardop3.setEnabled(true);
+                    cardop1.setEnabled(true);
+                    cardop4.setEnabled(true);
+                }
 
-            @Override
-            public void onTick(long millisUntilFinished) {
-                Toast.makeText(MainActivity.this, "Redirecting to next question", Toast.LENGTH_SHORT).show();
-                mProgress.setMessage("Loading Next Question...");
-                mProgress.show();
-            }
-        }.start();
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    Toast.makeText(MainActivity.this, "Redirecting to next question", Toast.LENGTH_SHORT).show();
+                    mProgress.setMessage("Loading Next Question...");
+                    mProgress.show();
+                }
+            }.start();
+        }
+
 }
 }
